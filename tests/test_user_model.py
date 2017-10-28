@@ -1,7 +1,7 @@
 import unittest
 import time
 from app import create_app, db
-from app.models import User
+from app.models import User, AnonymousUser, Role, Permission
 
 class UserModelTestCase(unittest.TestCase):
     def setUp(self):
@@ -9,6 +9,7 @@ class UserModelTestCase(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
+        Role.insert_roles()
 
     def tearDown(self):
         db.session.remove()
@@ -75,3 +76,39 @@ class UserModelTestCase(unittest.TestCase):
         token = u1.generate_reset_token()
         self.assertFalse(u2.reset_password(token, 'horse'))
         self.assertTrue(u2.verify_password('dog'))
+
+    def test_valid_email_change_token(self):
+        u = User(email='john@example.com', password='cat')
+        db.session.add(u)
+        db.session.commit()
+        token = u.generate_email_change_token('mark@anthony.com')
+        self.assertTrue(u.change_email(token))
+        self.assertEqual(u.email, 'mark@anthony.com')
+
+    def test_invalid_email_change_token(self):
+        u1 = User(email='julius@caesar.com')
+        u2 = User(email='henry@king.net')
+        db.session.add_all([u1, u2])
+        db.session.commit()
+        token = u1.generate_email_change_token('mark@anthony.com')
+        self.assertFalse(u2.change_email(token))
+        self.assertEqual(u2.email, 'henry@king.net')
+
+    def test_duplicate_email_change_token(self):
+        u1 = User(email='julius@caesar.com')
+        u2 = User(email='henry@king.net')
+        db.session.add_all([u1, u2])
+        db.session.commit()
+        token = u2.generate_email_change_token('julius@caesar.com')
+        self.assertFalse(u2.change_email(token))
+        self.assertEqual(u2.email, 'henry@king.net')
+
+    def test_roles_and_permissions(self):
+        u = User(email='julius@caesar.com')
+        self.assertTrue(u.can(Permission.WRITE_ARTICLES))
+        self.assertFalse(u.can(Permission.MODERATE_COMMENTS))
+
+    def test_anonymous_user(self):
+        u = AnonymousUser()
+        self.assertFalse(u.can(Permission.FOLLOW))
+    
