@@ -20,14 +20,15 @@ ul.posts li.post {
 ul.posts li.post:hover {
     background-color: #f0f0f0;
 }
-div.post-data {
+div.post-date {
     float: right;
 }
 div.post-author {
     font-weight: bold;
+    margin-left: 50px;
 }
 div.post-thumbnail {
-    position: absolute;
+    float: left;
 }
 div.post-content {
     margin-left: 48px;
