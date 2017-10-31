@@ -28,11 +28,14 @@ div.post-author {
     margin-left: 50px;
 }
 div.post-thumbnail {
-    float: left;
+    position: absolute;
 }
 div.post-content {
     margin-left: 48px;
     min-height: 48px;
+}
+div.post-body {
+    margin-left: 48px;
 }
 div.flask-pagedown-preview {
     margin: 10px 0px 10px 0px;
