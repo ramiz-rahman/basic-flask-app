@@ -170,7 +170,7 @@ class User(UserMixin, db.Model):
             return False
 
         self.email = new_email
-        self.avatar_hash = hashlib.md5(self.email.encode('utf-8').hexdigest())
+        self.avatar_hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
         db.session.add(self)
         return True
 
