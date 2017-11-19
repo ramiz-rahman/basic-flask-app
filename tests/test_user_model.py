@@ -2,7 +2,7 @@ import unittest
 import time
 from datetime import datetime
 from app import create_app, db
-from app.models import User, AnonymousUser, Role, Permission
+from app.models import User, AnonymousUser, Role, Permission, Follow
 
 class UserModelTestCase(unittest.TestCase):
     def setUp(self):
@@ -144,3 +144,42 @@ class UserModelTestCase(unittest.TestCase):
         self.assertTrue('r=pg' in gravatar_pg)
         self.assertTrue('d=retro' in gravatar_retro)
         self.assertTrue('https://secure.gravatar.com/avatar/d4c74594d841139328695756648b6bd6' in gravatar_ssl)
+
+    def test_follows(self):
+        u1 = User(email='julius@caesar.com', password='empire')
+        u2 = User(email='mark@anthony.com', password='august')
+        db.session.add_all([u1, u2])
+        db.session.commit()
+        self.assertFalse(u1.is_following(u2))
+        self.assertFalse(u1.is_followed_by(u2))
+        timestamp_before = datetime.utcnow()
+        u1.follow(u2)
+        db.session.add(u1)
+        db.session.commit()
+        time.sleep(1)
+        timestamp_after = datetime.utcnow()
+        self.assertTrue(u1.is_following(u2))
+        self.assertFalse(u1.is_followed_by(u2))
+        self.assertTrue(u2.is_followed_by(u1))
+        self.assertFalse(u2.is_following(u1))
+        self.assertEqual(u1.followed.count(), 1)
+        self.assertEqual(u2.followers.count(), 1)
+        f = u1.followed.all()[-1]
+        self.assertEqual(f.followed, u2)
+        self.assertLessEqual(timestamp_before, f.timestamp)
+        self.assertLessEqual(f.timestamp, timestamp_after)
+        self.assertTrue(timestamp_before <= f.timestamp <= timestamp_after)
+        f = u2.followers.all()[-1]
+        self.assertEqual(f.follower, u1)
+        u1.unfollow(u2)
+        db.session.add(u1)
+        db.session.commit()
+        self.assertEqual(u1.followed.count(), 0)
+        self.assertEqual(u2.followers.count(), 0)
+        self.assertEqual(Follow.query.count(), 0)
+        u2.follow(u1)
+        db.session.add_all([u1, u2])
+        db.session.commit()
+        db.session.delete(u2)
+        db.session.commit()
+        self.assertEqual(Follow.query.count(), 0)
