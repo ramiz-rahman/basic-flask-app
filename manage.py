@@ -18,10 +18,11 @@ manager.add_command('db', MigrateCommand)
 
 # Unit test launcher command
 @manager.command
-def test():
+def test(coverage=False, test_name=None):
     """Run the unit tests."""
     import unittest
-    tests = unittest.TestLoader().discover('tests')
+    if test_name is None:
+        tests = unittest.TestLoader().discover('tests')
     unittest.TextTestRunner(verbosity=2).run(tests)
 
 
