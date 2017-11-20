@@ -115,6 +115,7 @@ def follow(username):
         flash('You are already following this user.')
         return redirect(url_for('.user', username=username))
     current_user.follow(user)
+    db.session.commit()
     flash('You are now following %s.' % username)
     return redirect(url_for('.user', username=username))
 
@@ -131,6 +132,7 @@ def unfollow(username):
         flash('You are not following this user.')
         return redirect(url_for('.user', username=username))
     current_user.unfollow(user)
+    db.session.commit()
     flash('You are not following %s anymore.' % username)
     return redirect(url_for('.user', username=username))
 
@@ -148,7 +150,7 @@ def followers(username):
     return render_template('followers.html', user=user, title="Followers of", endpoint='.followers', pagination=pagination, follows=follows)
 
 
-@main.route('/followed-by/<username>')
+@main.route('/followed_by/<username>')
 def followed_by(username):
     user = User.query.filter_by(username=username).first()
     if user is None:
