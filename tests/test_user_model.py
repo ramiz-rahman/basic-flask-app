@@ -184,3 +184,5 @@ class UserModelTestCase(unittest.TestCase):
         db.session.delete(u2)
         db.session.commit()
         self.assertEqual(Follow.query.count(), 1)
+
+
