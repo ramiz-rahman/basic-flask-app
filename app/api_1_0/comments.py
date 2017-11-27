@@ -63,5 +63,5 @@ def new_post_comment(id):
     comment.post = post
     db.session.add(comment)
     db.session.commit()
-    return jsonify(comment.to_json(), 201, \
-        {'Location': url_for('api.get_comment', id=comment.id)})
+    return jsonify(comment.to_json()), 201, \
+        {'Location': url_for('api.get_comment', id=comment.id)}

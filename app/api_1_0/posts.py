@@ -27,7 +27,7 @@ def get_posts():
 }))
 
 
-@api.route('/psots/<int:id>')
+@api.route('/posts/<int:id>')
 def get_post(id):
     post = Post.query.get_or_404(id)
     return jsonify(post.to_json())
