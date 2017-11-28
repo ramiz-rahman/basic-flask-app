@@ -1,1 +1,1 @@
-web: gunicorn manage:app
+web: waitress-serve manage:app
