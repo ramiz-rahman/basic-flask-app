@@ -1,3 +1,5 @@
 env_setting.py
 /tmp
+.env
+.pyc
 
