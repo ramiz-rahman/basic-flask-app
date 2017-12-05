@@ -23,6 +23,7 @@ Markdown==2.6.9
 MarkupSafe==1.0
 PyMySQL==0.7.11
 python-dateutil==2.6.1
+python-dotenv==0.7.1
 python-editor==1.0.3
 six==1.11.0
 SQLAlchemy==1.1.14
