@@ -19,6 +19,12 @@ class Config:
     FLASKY_FOLLOWERS_PER_PAGE = 50
     FLASKY_COMMENTS_PER_PAGE = 30
     FLASKY_SLOW_DB_QUERY_TIME = 0.5
+    OAUTH_CREDENTIALS = {
+        'facebook': {
+            'id': '351800875291614',
+            'secret': '6920a880ae9739d5dddebc159bc7134d'
+        }
+    }
 
     @staticmethod
     def init_app(app):

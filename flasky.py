@@ -16,7 +16,8 @@ import sys
 import click
 from flask_migrate import Migrate, upgrade
 from app import create_app, db
-from app.models import User, Follow, Role, Permission, Post, Comment
+from app.models import User, Follow, Role, Permission, Post, Comment, \
+                        ExternalAuthProvider, UserExternalLogin
 
 app = create_app(os.getenv('FLASK_CONFIG') or 'default')
 migrate = Migrate(app, db)
@@ -25,7 +26,9 @@ migrate = Migrate(app, db)
 @app.shell_context_processor
 def make_shell_contextt():
     return dict(app=app, db=db, User=User, Follow=Follow, Role=Role,
-                Permission=Permission, Post=Post, Comment=Comment)
+                Permission=Permission, Post=Post, Comment=Comment,
+                ExternalAuthProvider=ExternalAuthProvider,
+                UserExternalLogin=UserExternalLogin)
 
 @app.cli.command()
 @click.option('--coverage/--no-coverage', default=False,

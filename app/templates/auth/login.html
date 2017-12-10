@@ -17,5 +17,10 @@
         Click here to register
         </a>
     </p>
+    <p>
+        <a class="btn btn-block btn-social btn-facebook" href="{{ url_for('auth.oauth_authorize', provider='facebook') }}">
+            <span class="fa fa-facebook"></span>
+            Login with Facebook</a>
+    </p>
 </div>
 {% endblock %}

@@ -10,6 +10,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from .. import db, login_manager
 from .role import Role, Permission 
 from .post import Post
+from .external import UserExternalLogin
 
 class Follow(db.Model):
     __tablename__ = 'follows'
@@ -48,6 +49,8 @@ class User(UserMixin, db.Model):
                 lazy='dynamic',
                 cascade='all, delete-orphan')
     comments = db.relationship('Comment', backref='author', lazy='dynamic')
+    external_logins = db.relationship('UserExternalLogin',
+                                     backref='user_account', lazy='dynamic')
 
     @staticmethod
     def add_self_follows():
@@ -64,6 +67,10 @@ class User(UserMixin, db.Model):
                 self.role = Role.query.filter_by(permissions=0xff).first()
             if self.role is None:
                 self.role = Role.query.filter_by(default=True).first()
+        if self.email is None:
+            self.email = 'user' \
+                        + str(User.query.order_by('-id').first().id) \
+                        + '@flasky.com'
         if self.email is not None and self.avatar_hash is None:
             self.avatar_hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
         self.follow(self)

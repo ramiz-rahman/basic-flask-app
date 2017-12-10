@@ -2,7 +2,8 @@ from flask import render_template, redirect, request, url_for, flash, session
 from flask_login import login_user, logout_user, login_required, current_user
 from . import auth
 from .. import db
-from ..models import User
+from ..oauth import OAuthSignIn
+from ..models import User, UserExternalLogin, ExternalAuthProvider
 from .forms import LoginForm, RegistrationForm, ChangePasswordForm, \
  PasswordResetRequestForm, PasswordResetForm, ChangeEmailForm
 from ..email import send_email
@@ -161,3 +162,58 @@ def change_email(token):
         flash('The confirmation link is invalid or has expired. Please try again')
     return redirect(url_for('main.index'))
 
+
+@auth.route('/authorize/<provider>')
+def oauth_authorize(provider):
+    if not current_user.is_anonymous:
+        return redirect(url_for('main.index'))
+    oauth = OAuthSignIn.get_provider(provider)
+    return oauth.authorize()
+
+
+@auth.route('/callback/<provider>')
+def oauth_callback(provider):
+    if not current_user.is_anonymous:
+        return redirect(url_for('main.index'))
+
+    oauth = OAuthSignIn.get_provider(provider)
+    external_user_id, name, first_name, last_name, email = oauth.callback()
+    if external_user_id is None:
+        flash('Authentication failed.')
+        return redirect(url_for('main.index'))
+
+    flash('id: {}, name: {}, first_name: {}, last_name: {}, email: {}'.format(
+        external_user_id, name, first_name, last_name, email))
+    user = UserExternalLogin.query.filter_by(
+        external_user_id=external_user_id).first()
+    if user is None:
+        user = UserExternalLogin(external_auth_provider=
+                    ExternalAuthProvider.query.filter_by(name=provider).first(),
+                    external_user_id=external_user_id,
+                    user_account=User(name=name,
+                                      username=first_name+last_name+provider,
+                                      email=email, confirmed=True))
+        if name:
+            user.name=name
+        if first_name:
+            user.first_name=first_name
+        if last_name:
+            user.last_name=last_name
+        if email:
+            user.email=email
+        db.session.add(user)
+    login_user(user.user_account, True)
+    return redirect(url_for('main.index'))
+    # social_id, first_name, last_name, email = oauth.callback()
+    # if social_id is None:
+    #     flash('Authentication failed.')
+    #     return redirect(url_for('main.index'))
+    # social_user = FacebookAccount.query.filter_by(facebook_id=social_id).first()
+    # user = User.query.filter_by(username=first_name+'_fb_'+last_name).first()
+    # if not social_user:
+    #     social_user = FacebookAccount(user_id=user.id, facebook_id=social_id,
+    #                        first_name=first_name, last_name=last_name)
+    #     db.session.add(social_user)
+    #     db.session.commit()
+    # login_user(user, True)
+    # return redirect(url_for('main.index'))
