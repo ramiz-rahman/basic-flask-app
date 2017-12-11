@@ -4,8 +4,9 @@ from . import auth
 from .. import db
 from ..oauth import OAuthSignIn
 from ..models import User, UserExternalLogin, ExternalAuthProvider
-from .forms import LoginForm, RegistrationForm, ChangePasswordForm, \
- PasswordResetRequestForm, PasswordResetForm, ChangeEmailForm
+from .forms import LoginForm, RegistrationForm, SetPasswordForm, \
+ ChangePasswordForm, PasswordResetRequestForm, PasswordResetForm, \
+ ChangeEmailForm
 from ..email import send_email
 
 
@@ -82,7 +83,8 @@ def confirm(token):
 @login_required
 def resend_confirmation():
     token = current_user.generate_confirmation_token()
-    send_email(current_user.email, 'Confirm Your Account', 'auth/email/confirm', user=current_user, token=token)
+    send_email(current_user.email, 'Confirm Your Account', 
+              'auth/email/confirm', user=current_user, token=token)
     flash('A new confirmation email been sent to you by email.')
     return redirect(url_for('main.index'))
 
@@ -90,15 +92,26 @@ def resend_confirmation():
 @auth.route('/change-password', methods=['GET', 'POST'])
 @login_required
 def change_password():
-    form = ChangePasswordForm()
-    if form.validate_on_submit():
-        if current_user.verify_password(form.old_password.data):
+    if current_user.password_hash is None:
+        form = SetPasswordForm()
+        if form.validate_on_submit():
             current_user.password = form.password.data
             db.session.add(current_user)
-            flash('Your password had been updated.')
+            flash('You have set up a password. You can now also login' +
+                  ' using this password and email address.')
             return redirect(url_for('main.index'))
-        else:
-            flash('Invalid password.')
+        else: 
+            flash('You have not set up a password for this account')
+    else:
+        form = ChangePasswordForm()
+        if form.validate_on_submit():
+            if current_user.verify_password(form.old_password.data):
+                current_user.password = form.password.data
+                db.session.add(current_user)
+                flash('Your password had been updated.')
+                return redirect(url_for('main.index'))
+            else:
+                flash('Invalid password.')
     return render_template("auth/change_password.html", form=form)
 
 
@@ -115,7 +128,8 @@ def password_reset_request():
                         'auth/email/reset_password',
                         user=user, token=token,
                         next=request.args.get('next'))
-        flash('An email with instructions to reset your password has been sent to you.')
+        flash('An email with instructions to reset your password' +
+             ' has been sent to you.')
         return redirect(url_for('auth.login'))
     return render_template('auth/reset_password.html', form=form)
 
@@ -145,8 +159,10 @@ def change_email_request():
         if current_user.verify_password(form.password.data):
             new_email = form.email.data
             token = current_user.generate_email_change_token(new_email)
-            send_email(new_email, 'Confirm your email address', 'auth/email/change_email', user=current_user, token=token)
-            flash('An email with instructions to confirm your new email address has been sent to you.')
+            send_email(new_email, 'Confirm your email address',
+                      'auth/email/change_email', user=current_user, token=token)
+            flash('An email with instructions to confirm your new' +  
+                  'email address has been sent to you.')
             return redirect(url_for('main.index'))
         else:
             flash('Invalid email or password.')
@@ -159,7 +175,8 @@ def change_email(token):
     if current_user.change_email(token):
         flash('Your email address has been changed.')
     else:
-        flash('The confirmation link is invalid or has expired. Please try again')
+        flash('The confirmation link is invalid or has expired.' +
+              ' Please try again')
     return redirect(url_for('main.index'))
 
 
@@ -204,16 +221,3 @@ def oauth_callback(provider):
         db.session.add(user)
     login_user(user.user_account, True)
     return redirect(url_for('main.index'))
-    # social_id, first_name, last_name, email = oauth.callback()
-    # if social_id is None:
-    #     flash('Authentication failed.')
-    #     return redirect(url_for('main.index'))
-    # social_user = FacebookAccount.query.filter_by(facebook_id=social_id).first()
-    # user = User.query.filter_by(username=first_name+'_fb_'+last_name).first()
-    # if not social_user:
-    #     social_user = FacebookAccount(user_id=user.id, facebook_id=social_id,
-    #                        first_name=first_name, last_name=last_name)
-    #     db.session.add(social_user)
-    #     db.session.commit()
-    # login_user(user, True)
-    # return redirect(url_for('main.index'))

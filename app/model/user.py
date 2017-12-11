@@ -21,22 +21,25 @@ class Follow(db.Model):
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(64), unique=True, index=True)
-    username = db.Column(db.String(64), unique=True, index=True)
-    password_hash = db.Column(db.String(128))
-    confirmed = db.Column(db.Boolean, default=False)
 
-    # Relationship
-    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
-    
-    # User Information
-    name = db.Column(db.String(64))
-    location = db.Column(db.String(64))
-    about_me = db.Column(db.Text())
+    # User account credentials
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(64), unique=True, nullable=True, index=True)
+    username = db.Column(db.String(64), unique=True, nullable=True, index=True)
+    password_hash = db.Column(db.String(128), nullable=True)
+    confirmed = db.Column(db.Boolean, default=False)
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
+    external_logins = db.relationship('UserExternalLogin',
+                                     backref='user_account', lazy='dynamic')
+
+    # User profile information
+    first_name = db.Column(db.String(30), nullable=True)
+    last_name = db.Column(db.String(30), nullable=True)
+    location = db.Column(db.String(64), nullable=True)
+    about_me = db.Column(db.Text(), nullable=True)
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
-    avatar_hash = db.Column(db.String(32))
+    avatar_hash = db.Column(db.String(32), nullable=True)
     posts = db.relationship('Post', backref='author', lazy='dynamic')
     followed = db.relationship('Follow',
                 foreign_keys=[Follow.follower_id],
@@ -49,9 +52,7 @@ class User(UserMixin, db.Model):
                 lazy='dynamic',
                 cascade='all, delete-orphan')
     comments = db.relationship('Comment', backref='author', lazy='dynamic')
-    external_logins = db.relationship('UserExternalLogin',
-                                     backref='user_account', lazy='dynamic')
-
+   
     @staticmethod
     def add_self_follows():
         for user in User.query.all():
@@ -62,15 +63,27 @@ class User(UserMixin, db.Model):
 
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
+        # Set a default email_address if none present
+        last_id = User.query.order_by('-id').first()
+        if last_id is None:
+            last_id = 0
+        else:
+            last_id = last_id.id
+        if self.email is None:
+            self.email = 'user' \
+                        + str(last_id + 1) \
+                        + '@flasky.com'
+        # Set a default username if none present
+        if self.username is None:
+            self.username = 'flasky_user_' \
+                            + str(last_id + 1)
+        # Set user role
         if self.role is None:
             if self.email == current_app.config['FLASKY_ADMIN']:
                 self.role = Role.query.filter_by(permissions=0xff).first()
             if self.role is None:
                 self.role = Role.query.filter_by(default=True).first()
-        if self.email is None:
-            self.email = 'user' \
-                        + str(User.query.order_by('-id').first().id) \
-                        + '@flasky.com'
+        # Set avatar hash
         if self.email is not None and self.avatar_hash is None:
             self.avatar_hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
         self.follow(self)
@@ -87,7 +100,8 @@ class User(UserMixin, db.Model):
             username=forgery_py.internet.user_name(True),
             password=forgery_py.lorem_ipsum.word(),
             confirmed=True,
-            name=forgery_py.name.full_name(),
+            first_name=forgery_py.name.first_name(),
+            last_name=forgery_py.name.last_name(),
             location=forgery_py.address.city(),
             about_me=forgery_py.lorem_ipsum.sentence(),
             member_since=forgery_py.date.date(True))
